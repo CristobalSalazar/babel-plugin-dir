@@ -1,0 +1,26 @@
+{
+  "name": "code",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "babel": "BABEL_DISABLE_CACHE=1 npx babel src -d dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.7",
+    "@babel/generator": "^7.8.7",
+    "@babel/register": "^7.8.6",
+    "@babel/types": "^7.8.7",
+    "babel-plugin-wildcard": "^6.0.0",
+    "webpack": "^4.42.0",
+    "webpack-dev-server": "^3.10.3"
+  },
+  "dependencies": {
+    "pify": "^5.0.0"
+  }
+}
