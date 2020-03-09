@@ -1,4 +1,4 @@
 {
-  "plugins": ["./plugin/index.js"],
-  "compact": true
+  "plugins": ["./plugin"],
+  "presets": ["@babel/env"]
 }
