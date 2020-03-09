@@ -19,10 +19,16 @@ module.exports = function(babel) {
           const declarations = files.map(file => {
             fileId = getUniqueFileIdentifier(dir, file);
             variableNames.push(fileId);
-            return createImportDeclaration(fileId, `${dir}/${file}`);
+            return createImportDeclaration(
+              fileId,
+              `${dir}${nodepath.sep}${file}`
+            );
           });
-
-          //path.insertAfter(createVariableDeclaration({}, val));
+          path.insertAfter(
+            createVariableDeclaration("var", val, {
+              [variableNames[0]]: t.identifier(variableNames[0])
+            })
+          );
           path.replaceWithMultiple(declarations);
         }
       }
@@ -31,18 +37,27 @@ module.exports = function(babel) {
 };
 
 function getObjectProperties(obj) {
-  const properties = [];
+  const properties = new Array();
   for (key in obj) {
-    properties.push(t.objectProperty(key, obj[key]));
+    properties.push(t.objectProperty(t.stringLiteral(key), obj[key]));
   }
   return properties;
 }
 
-function createVariableDeclaration(obj, name) {
-  return t.variableDeclaration(
-    "var",
-    t.variableDeclarator(t.identifier(name), t.objectExpression(getObjectProperties(obj)))
-  );
+function createVariableDeclaration(type, name, obj) {
+  const isValidVariableType =
+    type === "var" || type === "let" || type === "const";
+
+  if (!isValidVariableType) {
+    throw new Error("invalid variable type");
+  } else {
+    return t.variableDeclaration(type, [
+      t.variableDeclarator(
+        t.identifier(name),
+        t.objectExpression(getObjectProperties(obj))
+      )
+    ]);
+  }
 }
 
 function getValidFilesFromDirectory(dir) {
@@ -68,7 +83,10 @@ function getUniqueFileIdentifier(filedir, filename) {
 }
 
 function createImportDeclaration(name, src) {
-  return t.importDeclaration([t.importDefaultSpecifier(t.identifier(name))], t.stringLiteral(src));
+  return t.importDeclaration(
+    [t.importDefaultSpecifier(t.identifier(name))],
+    t.stringLiteral(src)
+  );
 }
 
 function isRelativePath(path) {
