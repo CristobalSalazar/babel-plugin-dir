@@ -1,6 +1,7 @@
 const fs = require("fs");
 const nodepath = require("path");
 const t = require("@babel/types");
+const _ = require("lodash");
 
 module.exports = function(babel) {
   return {
@@ -13,22 +14,23 @@ module.exports = function(babel) {
         const regex = /(\.|[d]|[a-z]*)\/\*$/gim;
 
         if (regex.test(importSource)) {
-          const dir = getImportDirectoryPath(filepath, importSource);
+          const dir = getAbsoluteImportDirectoryPath(filepath, importSource);
           const files = getValidFilesFromDirectory(dir);
-          const variableNames = [];
-          const declarations = files.map(file => {
-            fileId = getUniqueFileIdentifier(dir, file);
-            variableNames.push(fileId);
-            return createImportDeclaration(
-              fileId,
-              `${dir}${nodepath.sep}${file}`
-            );
+          const declarations = getImportDeclarationsFromFiles(files, dir, path);
+
+          let declarationsMap = _.chain(declarations)
+            .keyBy("specifiers[0].local.name")
+            .mapValues("specifiers[0].local")
+            .value();
+
+          declarationsMap = _.mapKeys(declarationsMap, key => {
+            return trimExtension(new String(key));
           });
+
           path.insertAfter(
-            createVariableDeclaration("var", val, {
-              [variableNames[0]]: t.identifier(variableNames[0])
-            })
+            createVariableDeclaration("var", val, declarationsMap)
           );
+
           path.replaceWithMultiple(declarations);
         }
       }
@@ -36,10 +38,27 @@ module.exports = function(babel) {
   };
 };
 
+function getImportDeclarationsFromFiles(files, dir, path) {
+  return files.map(file => {
+    const uid = path.scope.generateUid(file);
+    return createImportDeclaration(uid, `${dir}${nodepath.sep}${file}`);
+  });
+}
+
+function trimExtension(fileName) {
+  const dotIndex = fileName.indexOf(".");
+  if (dotIndex === -1) {
+    return fileName;
+  } else {
+    return fileName.substr(0, dotIndex);
+  }
+}
+
 function getObjectProperties(obj) {
   const properties = new Array();
   for (key in obj) {
-    properties.push(t.objectProperty(t.stringLiteral(key), obj[key]));
+    console.log(obj[key]);
+    properties.push(t.objectProperty(t.identifier(key), obj[key]));
   }
   return properties;
 }
@@ -67,19 +86,10 @@ function getValidFilesFromDirectory(dir) {
   });
 }
 
-function getImportDirectoryPath(babelFilePath, importPath) {
+function getAbsoluteImportDirectoryPath(babelFilePath, importPath) {
   const importDir = nodepath.dirname(importPath);
   const currentDirPath = nodepath.dirname(babelFilePath);
   return nodepath.resolve(currentDirPath, importDir);
-}
-
-function getUniqueFileIdentifier(filedir, filename) {
-  let out = filedir.split(nodepath.sep);
-  out.push(filename);
-  return out
-    .join("_")
-    .split(".")
-    .join("_");
 }
 
 function createImportDeclaration(name, src) {
@@ -87,12 +97,4 @@ function createImportDeclaration(name, src) {
     [t.importDefaultSpecifier(t.identifier(name))],
     t.stringLiteral(src)
   );
-}
-
-function isRelativePath(path) {
-  return path.charAt(0) === ".";
-}
-
-function isDirectory(path) {
-  return fs.existsSync(path) && fs.statSync(path).isDirectory();
 }
