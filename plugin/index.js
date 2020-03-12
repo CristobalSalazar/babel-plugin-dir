@@ -16,16 +16,19 @@ module.exports = function(babel) {
         if (regex.test(importSource)) {
           const dir = getAbsoluteImportDirectoryPath(filepath, importSource);
           const files = getValidFilesFromDirectory(dir);
-          const declarations = getImportDeclarationsFromFiles(files, dir, path);
+
+          const declarations = files.map(file => {
+            file = trimExtension(file);
+            return createImportDeclaration(
+              file,
+              `${dir}${nodepath.sep}${file}`
+            );
+          });
 
           let declarationsMap = _.chain(declarations)
             .keyBy("specifiers[0].local.name")
-            .mapValues("specifiers[0].local")
+            .mapValues("specifiers[0].local.name")
             .value();
-
-          declarationsMap = _.mapKeys(declarationsMap, key => {
-            return trimExtension(new String(key));
-          });
 
           path.insertAfter(
             createVariableDeclaration("var", val, declarationsMap)
@@ -38,29 +41,16 @@ module.exports = function(babel) {
   };
 };
 
-function getImportDeclarationsFromFiles(files, dir, path) {
-  return files.map(file => {
-    const uid = path.scope.generateUid(file);
-    return createImportDeclaration(uid, `${dir}${nodepath.sep}${file}`);
-  });
-}
-
 function trimExtension(fileName) {
+  if (typeof fileName !== "string") {
+    throw new Error("fileName must be of type String");
+  }
   const dotIndex = fileName.indexOf(".");
   if (dotIndex === -1) {
     return fileName;
   } else {
     return fileName.substr(0, dotIndex);
   }
-}
-
-function getObjectProperties(obj) {
-  const properties = new Array();
-  for (key in obj) {
-    console.log(obj[key]);
-    properties.push(t.objectProperty(t.identifier(key), obj[key]));
-  }
-  return properties;
 }
 
 function createVariableDeclaration(type, name, obj) {
@@ -77,6 +67,16 @@ function createVariableDeclaration(type, name, obj) {
       )
     ]);
   }
+}
+
+function getObjectProperties(obj) {
+  const properties = new Array();
+  for (key in obj) {
+    properties.push(
+      t.objectProperty(t.identifier(key), t.identifier(obj[key]))
+    );
+  }
+  return properties;
 }
 
 function getValidFilesFromDirectory(dir) {
