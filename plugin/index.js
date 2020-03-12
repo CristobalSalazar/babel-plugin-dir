@@ -1,4 +1,3 @@
-const fs = require("fs");
 const nodepath = require("path");
 const t = require("@babel/types");
 const _ = require("lodash");
