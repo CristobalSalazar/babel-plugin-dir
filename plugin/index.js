@@ -2,6 +2,11 @@ const fs = require("fs");
 const nodepath = require("path");
 const t = require("@babel/types");
 const _ = require("lodash");
+const {
+  getAbsoluteImportDirectoryPath,
+  getValidFilesFromDirectory,
+  trimExtension
+} = require("./lib/util");
 
 module.exports = function(babel) {
   return {
@@ -15,7 +20,8 @@ module.exports = function(babel) {
 
         if (regex.test(importSource)) {
           const dir = getAbsoluteImportDirectoryPath(filepath, importSource);
-          const files = getValidFilesFromDirectory(dir);
+          const validFiles = /\.(jsx?$|tsx?$)/g;
+          const files = getValidFilesFromDirectory(dir, validFiles);
 
           const declarations = files.map(file => {
             file = trimExtension(file);
@@ -41,22 +47,16 @@ module.exports = function(babel) {
   };
 };
 
-function trimExtension(fileName) {
-  if (typeof fileName !== "string") {
-    throw new Error("fileName must be of type String");
-  }
-  const dotIndex = fileName.indexOf(".");
-  if (dotIndex === -1) {
-    return fileName;
-  } else {
-    return fileName.substr(0, dotIndex);
-  }
+function createImportDeclaration(name, src) {
+  return t.importDeclaration(
+    [t.importDefaultSpecifier(t.identifier(name))],
+    t.stringLiteral(src)
+  );
 }
 
 function createVariableDeclaration(type, name, obj) {
   const isValidVariableType =
     type === "var" || type === "let" || type === "const";
-
   if (!isValidVariableType) {
     throw new Error("invalid variable type");
   } else {
@@ -77,24 +77,4 @@ function getObjectProperties(obj) {
     );
   }
   return properties;
-}
-
-function getValidFilesFromDirectory(dir) {
-  return fs.readdirSync(dir, "utf-8").filter(file => {
-    const regx = /\.(jsx?$|tsx?$)/g;
-    return regx.test(file);
-  });
-}
-
-function getAbsoluteImportDirectoryPath(babelFilePath, importPath) {
-  const importDir = nodepath.dirname(importPath);
-  const currentDirPath = nodepath.dirname(babelFilePath);
-  return nodepath.resolve(currentDirPath, importDir);
-}
-
-function createImportDeclaration(name, src) {
-  return t.importDeclaration(
-    [t.importDefaultSpecifier(t.identifier(name))],
-    t.stringLiteral(src)
-  );
 }
