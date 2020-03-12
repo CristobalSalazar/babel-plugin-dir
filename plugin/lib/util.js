@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 module.exports = {
   trimExtension(fileName) {
     if (typeof fileName !== "string") {
@@ -12,12 +15,12 @@ module.exports = {
   },
   getValidFilesFromDirectory(dir, regx) {
     return fs.readdirSync(dir, "utf-8").filter(file => {
-      return regex.test(file);
+      return regx.test(file);
     });
   },
   getAbsoluteImportDirectoryPath(babelFilePath, importPath) {
-    const importDir = nodepath.dirname(importPath);
-    const currentDirPath = nodepath.dirname(babelFilePath);
-    return nodepath.resolve(currentDirPath, importDir);
+    const importDir = path.dirname(importPath);
+    const currentDirPath = path.dirname(babelFilePath);
+    return path.resolve(currentDirPath, importDir);
   }
 };
