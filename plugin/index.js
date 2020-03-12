@@ -16,11 +16,10 @@ module.exports = function(babel) {
         const importSource = path.node.source.value;
         const val = path.node.specifiers[0].local.name;
         const regex = /(\.|[d]|[a-z]*)\/\*$/gim;
-
         if (regex.test(importSource)) {
           const dir = getAbsoluteImportDirectoryPath(filepath, importSource);
-          const validFiles = /\.(jsx?$|tsx?$)/g;
-          const files = getValidFilesFromDirectory(dir, validFiles);
+          const fileFilter = /\.(jsx?$|tsx?$)/;
+          const files = getValidFilesFromDirectory(dir, fileFilter);
 
           const declarations = files.map(file => {
             file = trimExtension(file);
